@@ -4,9 +4,12 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.Servo;
 
 public class Intake {
-    private final DcMotorEx motor;
+    public final DcMotorEx motor;
+    public Servo servo;
+    public Servo servo1;
 
     public Intake(HardwareMap hardwareMap) {
         motor = hardwareMap.get(DcMotorEx.class, "Intake");
@@ -17,6 +20,9 @@ public class Intake {
     }
     public void run() {
         motor.setPower(1);
+        servo.setDirection(Servo.Direction.FORWARD);
+        servo1.setDirection(Servo.Direction.FORWARD);
+        
     }
     public void reverse() {
         motor.setPower(-1);
