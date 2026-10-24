@@ -14,14 +14,14 @@ public class DriveTrain extends LinearOpMode {
     @Override
     public void runOpMode() {
         MovementSetUp();
-        //Intake intake = new Intake(hardwareMap);
+        Intake intake = new Intake(hardwareMap);
 
         waitForStart();
 
         while (opModeIsActive()) {
-            /*
-            intake.setPower(1);
-             */
+
+            intake.run();
+
 
 
             // --- Driving ---
