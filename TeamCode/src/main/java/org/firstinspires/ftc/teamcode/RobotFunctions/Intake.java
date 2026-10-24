@@ -22,15 +22,18 @@ public class Intake {
         motor.setPower(1);
         servo.setDirection(Servo.Direction.FORWARD);
         servo1.setDirection(Servo.Direction.FORWARD);
-        
+
     }
     public void reverse() {
+
         motor.setPower(-1);
     }
     public void stop() {
+
         motor.setPower(0);
     }
     public void setPower(double power) {
+
         motor.setPower(power);
     }
 }
