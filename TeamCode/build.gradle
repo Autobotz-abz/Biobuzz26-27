@@ -24,6 +24,18 @@ android {
     }
 }
 
+repositories {
+    maven { url = 'https://mymaven.bylazar.com/releases' } // Panels
+    maven { url = 'https://repo.dairy.foundation/releases' } // Sloth (needed by Panels)
+}
+
 dependencies {
     implementation project(':FtcRobotController')
+
+    // Pedro Pathing
+    implementation 'com.pedropathing:ftc:2.1.2'
+    implementation 'com.pedropathing:telemetry:1.0.0'
+
+    // Panels (dashboard used by Pedro Pathing tuning)
+    implementation 'com.bylazar:fullpanels:1.0.19'
 }
