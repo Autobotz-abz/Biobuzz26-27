@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 import org.firstinspires.ftc.teamcode.RobotFunctions.Intake;
 
@@ -45,7 +46,8 @@ public class DriveTrain extends LinearOpMode {
         leftFront = hardwareMap.get(DcMotorEx.class, "frontLeft");
         rightFront = hardwareMap.get(DcMotorEx.class, "frontRight");
 
-        leftRear.setDirection(DcMotor.Direction.REVERSE);
+        leftRear.setDirection(DcMotor.Direction.FORWARD);
+        rightRear.setDirection(DcMotor.Direction.REVERSE);
         leftFront.setDirection(DcMotor.Direction.REVERSE);
 
         leftRear.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);

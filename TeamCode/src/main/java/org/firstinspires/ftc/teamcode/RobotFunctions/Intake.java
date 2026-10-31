@@ -5,23 +5,29 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.CRServo;
+import com.qualcomm.robotcore.hardware.ServoImplEx;
 
 public class Intake {
     public final DcMotorEx motor;
-    public Servo servo;
-    public Servo servo1;
+    public CRServo servo;
+    public CRServo servo1;
 
     public Intake(HardwareMap hardwareMap) {
         motor = hardwareMap.get(DcMotorEx.class, "Intake");
         motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
         // Uncomment if the intake spins the wrong way:
         // motor.setDirection(DcMotorSimple.Direction.REVERSE);
+
+        servo = hardwareMap.get(CRServo.class, "Servo");
+        servo1 = hardwareMap.get(CRServo.class, "Servo1");
     }
     public void run() {
         motor.setPower(1);
-        servo.setDirection(Servo.Direction.FORWARD);
-        servo1.setDirection(Servo.Direction.FORWARD);
+        servo.setPower(1);
+        servo1.setPower(-1);
 
     }
     public void reverse() {
