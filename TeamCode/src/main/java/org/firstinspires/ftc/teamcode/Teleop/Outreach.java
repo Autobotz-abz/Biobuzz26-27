@@ -32,10 +32,10 @@ public class Outreach extends LinearOpMode {
             double x = gamepad1.left_stick_x;
 
             double denominator = Math.max(Math.abs(y) + Math.abs(rx), 1);
-            leftFront.setPower((y + rx + x) / denominator*0.55);
-            leftRear.setPower((y - x + rx) / denominator*0.55);
-            rightFront.setPower((y - rx - x) / denominator*0.55);
-            rightRear.setPower((y + x - rx) / denominator*0.55);
+            leftFront.setPower((y + rx + x) / denominator*0.2);
+            leftRear.setPower((y - x + rx) / denominator*0.2);
+            rightFront.setPower((y - rx - x) / denominator*0.2);
+            rightRear.setPower((y + x - rx) / denominator*0.2);
         }
     }
 
