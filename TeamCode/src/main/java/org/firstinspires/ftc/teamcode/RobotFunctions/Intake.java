@@ -11,6 +11,7 @@ import com.qualcomm.robotcore.hardware.ServoImplEx;
 public class Intake {
     public final DcMotorEx motor;
     public CRServo servo;
+    public boolean run = true;
     public CRServo servo1;
 
     public Intake(HardwareMap hardwareMap) {
@@ -28,6 +29,7 @@ public class Intake {
         motor.setPower(1);
         servo.setPower(1);
         servo1.setPower(-1);
+
 
     }
     public void reverse() {
