@@ -74,8 +74,9 @@ public class  AutoShooter {
     // true  = setVelocity with the encoder, which holds the speed better once it works.
     private static final boolean USE_VELOCITY_CONTROL = false;
     // Power mode only: multiply the power by this if shots are short or long everywhere.
-    // 1.37 makes a 48 in shot come out at about 0.73 power (the math alone gives 0.534).
-    private static final double POWER_SCALE = 1.37;
+    // 1.42 makes a 48 in shot come out at about 0.76 power (the math alone gives 0.534).
+    // New scale = (power you want at 48 in) / 0.534
+    private static final double POWER_SCALE = 1.42;
     // Power mode only: the wheel counts as ready this long after it starts spinning.
     private static final long SPINUP_MS = 1000;
 
