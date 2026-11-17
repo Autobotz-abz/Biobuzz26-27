@@ -5,24 +5,31 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.teamcode.RobotFunctions.Intake;
+import org.firstinspires.ftc.teamcode.RobotFunctions.TransferPathway;
 
 @TeleOp
 public class Outreach extends LinearOpMode {
 
     public DcMotorEx leftRear, rightRear, leftFront, rightFront;
+    public Servo gate1,gate2;
+
 
     @Override
     public void runOpMode() {
         MovementSetUp();
-        Intake intake = new Intake(hardwareMap);
+        Intake intake = new Intake(hardwareMap);        
+        TransferPathway transfer = new TransferPathway(hardwareMap);
 
         waitForStart();
 
         while (opModeIsActive()) {
 
             intake.run();
+            transfer.run();
+            gate();
 
 
 
@@ -63,5 +70,26 @@ public class Outreach extends LinearOpMode {
         leftFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rightRear.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rightFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        gate1 = hardwareMap.get(Servo.class, "Gate1Servo");
+        gate2 = hardwareMap.get(Servo.class, "Gate2Servo");
+    }
+
+    private void gate()
+    {
+        if (gamepad1.circleWasPressed()) {
+            gate1.setPosition(0);
+
+        }
+        if (!gamepad1.circleWasPressed()) {
+            gate1.setPosition(0.5);
+        }
+        if (gamepad1.squareWasPressed()) {
+            gate2.setPosition(0.5);
+
+        }
+        if (!gamepad1.squareWasPressed()) {
+            gate2.setPosition(0);
+        }
     }
 }

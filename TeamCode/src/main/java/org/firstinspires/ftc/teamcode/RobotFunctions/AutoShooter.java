@@ -4,7 +4,9 @@ import com.qualcomm.hardware.dfrobot.HuskyLens;
 import com.qualcomm.hardware.dfrobot.HuskyLens.Block;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.ServoImplEx;
 
 /**
@@ -15,7 +17,7 @@ import com.qualcomm.robotcore.hardware.ServoImplEx;
  * Use:  AutoShooter shooter = new AutoShooter(hardwareMap);
  *       shooter.update(gamepad1.right_bumper);   // every loop
  */
-public class AutoShooter {
+public class  AutoShooter {
 
     // ============ 1. FIELD (BioBuzz game manual, Field Acceptance Checklist) ============
     // Aim point = middle of the upright CELL opening. Its bottom edge is 53.5 in above the
@@ -30,11 +32,16 @@ public class AutoShooter {
     // Names in your robot configuration.
     private static final String HUSKY_NAME = "HuskyLens";
     private static final String OUTTAKE_NAME = "Outtake";
+    // Same names as the Hood Test OpMode. Change them if your configuration says
+    // something else (for example "hoodservo1" and "hoodservo2"). Names are case sensitive.
     private static final String HOOD_NAME = "HoodServo";
+    private static final String HOOD2_NAME = "Hood2Servo";
+    // Set true if the second servo is mounted mirrored and has to turn the other way.
+    private static final boolean HOOD2_REVERSED = false;
 
     // Height of the ball when it leaves the shooter, measured from the tiles.
-    // 16.3 is the shooterHeight from your old code.
-    private static final double BALL_EXIT_HEIGHT_IN = 16.3;
+    // This year's robot.
+    private static final double BALL_EXIT_HEIGHT_IN = 14.8;
 
     // Hood end stops: the launch angle at each end, and the servo position at each end.
     // These four are placeholders. Read the angles from your CAD (or an angle finder).
@@ -45,7 +52,7 @@ public class AutoShooter {
 
     // Tag IDs to aim at. Empty = aim at any tag. The telemetry shows the IDs your
     // HuskyLens really reports. Put your alliance's IDs here to ignore the other hive.
-    private static final int[] TARGET_TAG_IDS = {};
+    private static final int[] TARGET_TAG_IDS = {1, 2, 3, 4};
 
     // ============ 3. CAMERA (from your STEP file and your old code) ============
     // Focal length in pixels (image is 320 x 240). Your old code had (70 * 28) / 7 = 280.
@@ -62,6 +69,15 @@ public class AutoShooter {
     private static final double TICKS_PER_REV = 28;            // goBILDA 5203, 6000 rpm
     private static final double MAX_MOTOR_RPM = 6000;
     private static final double MOTOR_TO_WHEEL = 1.0;          // 1:1 belt in your STEP file
+    // false = plain setPower (power = target rpm / max rpm). Use this while the encoder
+    //         reading is not trusted (velocity mode ran the wheel too fast).
+    // true  = setVelocity with the encoder, which holds the speed better once it works.
+    private static final boolean USE_VELOCITY_CONTROL = false;
+    // Power mode only: multiply the power by this if shots are short or long everywhere.
+    // 1.37 makes a 48 in shot come out at about 0.73 power (the math alone gives 0.534).
+    private static final double POWER_SCALE = 1.37;
+    // Power mode only: the wheel counts as ready this long after it starts spinning.
+    private static final long SPINUP_MS = 1000;
 
     // ============ 5. TUNING (the defaults should work) ============
     // Angle the ball comes down at. The CELL mouth faces about 30 degrees above
@@ -72,7 +88,7 @@ public class AutoShooter {
     // Wheel surface speed divided by ball speed. A ball squeezed between a wheel and a
     // fixed hood leaves at about half the wheel speed, so this is close to 2.
     // Nudge it live with adjustSlipFactor() if shots land short or long everywhere.
-    private double slipFactor = 1.9;
+    private double slipFactor = 2.3;
 
     // ============ OTHER ============
     private static final double TARGET_HEIGHT_IN = OPENING_CENTER_HEIGHT_IN - BALL_EXIT_HEIGHT_IN;
@@ -84,6 +100,7 @@ public class AutoShooter {
     private final HuskyLens husky;
     private final DcMotorEx outtake;
     private final ServoImplEx hood;
+    private final ServoImplEx hood2;
     private final boolean huskyConnected;
 
     private boolean hasDistance = false;
@@ -94,21 +111,28 @@ public class AutoShooter {
     private double targetRpm = 0;
     private boolean canShoot = false;
     private long lastSeenMs = 0;
+    private double outtakePower = 0;
+    private long spinStartMs = 0;
+    private boolean spinning = false;
 
     public AutoShooter(HardwareMap hw) {
         husky = hw.get(HuskyLens.class, HUSKY_NAME);
         outtake = hw.get(DcMotorEx.class, OUTTAKE_NAME);
         hood = hw.get(ServoImplEx.class, HOOD_NAME);
+        hood2 = hw.get(ServoImplEx.class, HOOD2_NAME);
+        if (HOOD2_REVERSED) hood2.setDirection(Servo.Direction.REVERSE);
 
         huskyConnected = husky.knock();
         husky.selectAlgorithm(HuskyLens.Algorithm.TAG_RECOGNITION);
 
         outtake.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        outtake.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        outtake.setMode(USE_VELOCITY_CONTROL
+                ? DcMotor.RunMode.RUN_USING_ENCODER
+                : DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         outtake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        // outtake.setDirection(DcMotorSimple.Direction.REVERSE); // if the wheel spins backwards
+        outtake.setDirection(DcMotorSimple.Direction.REVERSE); // same as the Hood Test OpMode
 
-        hood.setPosition(angleToServo(targetAngleDeg));
+        setHood(targetAngleDeg);
     }
 
     /** Call every loop. spinUp = true runs the wheel at the calculated speed. */
@@ -167,13 +191,27 @@ public class AutoShooter {
             }
         }
 
-        // 4. Move the hood and the wheel.
-        hood.setPosition(angleToServo(targetAngleDeg));
+        // 4. Move both hood servos and the wheel.
+        setHood(targetAngleDeg);
+        outtakePower = clamp(targetRpm / MAX_MOTOR_RPM * POWER_SCALE, 0, 1);
         if (spinUp) {
-            outtake.setVelocity(targetRpm / 60.0 * TICKS_PER_REV);
+            if (!spinning) spinStartMs = System.currentTimeMillis();
+            spinning = true;
+            if (USE_VELOCITY_CONTROL) {
+                outtake.setVelocity(targetRpm / 60.0 * TICKS_PER_REV);
+            } else {
+                outtake.setPower(outtakePower);
+            }
         } else {
+            spinning = false;
             outtake.setPower(0);
         }
+    }
+
+    private void setHood(double angleDeg) {
+        double pos = angleToServo(angleDeg);
+        hood.setPosition(pos);
+        hood2.setPosition(pos);
     }
 
     // ================= DISTANCE FROM ONE TAG =================
@@ -257,9 +295,14 @@ public class AutoShooter {
 
     /** True when the shot is possible, the tag is seen, and the wheel is at speed. */
     public boolean isReady() {
-        return canShoot && tagVisible()
-                && Math.abs(getCurrentRpm() - targetRpm) <= READY_TOLERANCE_RPM;
+        if (!canShoot || !tagVisible() || !spinning) return false;
+        if (USE_VELOCITY_CONTROL) {
+            return Math.abs(getCurrentRpm() - targetRpm) <= READY_TOLERANCE_RPM;
+        }
+        return System.currentTimeMillis() - spinStartMs >= SPINUP_MS;
     }
+
+    public double getOuttakePower()   { return outtakePower; }
 
     public boolean isHuskyConnected() { return huskyConnected; }
     public boolean canShoot()         { return canShoot; }

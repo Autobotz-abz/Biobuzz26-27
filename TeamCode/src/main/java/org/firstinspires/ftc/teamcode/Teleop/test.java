@@ -5,59 +5,51 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.ServoImplEx;
 
 /**
  * Test for the outtake wheel and the hood servo.
- * The wheel holds a set speed. Circle moves the hood servo up one step, square moves it
+ * The wheel runs at a fixed power. Circle moves the hood servo up one step, square moves it
  * down one step. The telemetry shows the servo position, so you can write down the
  * numbers for the hood end stops (HOOD_POS_AT_MIN and HOOD_POS_AT_MAX in AutoShooter).
  */
 @TeleOp(name = "Hood Test", group = "Test")
 public class test extends LinearOpMode {
 
-    // ============ CHANGE THESE ============
-    private static final double OUTTAKE_RPM = 2500;      // wheel speed to hold
-    private static final double STEP_DEG = 5;            // servo turns this many degrees per press
-    private static final double SERVO_RANGE_DEG = 300;   // full travel of your servo for positions 0 to 1
-    // (check the data sheet, often 180 or 300)
-    private static final double START_POSITION = 0.5;    // where the servo goes when you press start
+    // ============ CHANGE THESE ============// wheel power, 0 to 1
+    private static final String GATE1_NAME = "Gate1Servo";   // names in your configuration
+    private static final String GATE2_NAME = "Gate2Servo";
+    private static final double GATE_OPEN_POS = 0.5;         // <-- SET
+    private static final double GATE_CLOSED_POS = 0.0;       // <-- SET
 
-    private static final double TICKS_PER_REV = 28;      // goBILDA 5203, 6000 rpm
+    public DcMotorEx leftRear, rightRear, leftFront, rightFront;
+    public Servo gate1, gate2;
 
     @Override
     public void runOpMode() {
-        DcMotorEx outtake = hardwareMap.get(DcMotorEx.class, "Outtake");
-        ServoImplEx hood = hardwareMap.get(ServoImplEx.class, "HoodServo");
-
-        outtake.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        outtake.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        outtake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        outtake.setDirection(DcMotorSimple.Direction.REVERSE); // if the wheel spins backwards
-        // hood.setDirection(Servo.Direction.REVERSE);            // if circle moves the hood the wrong way
-
-        double stepPosition = STEP_DEG / SERVO_RANGE_DEG;   // one press, in servo position units
-        double position = START_POSITION;
-
-        telemetry.addData("Ready", "Press start. The wheel will spin at %.0f rpm.", OUTTAKE_RPM);
-        telemetry.update();
+        gate1 = hardwareMap.get(Servo.class, "Gate1Servo");
+        gate2 = hardwareMap.get(Servo.class, "Gate2Servo");
         waitForStart();
 
-        hood.setPosition(position);
-
         while (opModeIsActive()) {
-            if (gamepad1.circleWasPressed()) position += stepPosition;   // up
-            if (gamepad1.squareWasPressed()) position -= stepPosition;   // down
-            position = Math.max(0, Math.min(1, position));
-            hood.setPosition(position);
-            outtake.setVelocity(OUTTAKE_RPM / 60.0 * TICKS_PER_REV);
+            gate();
+        }
 
 
-            telemetry.addData("Servo position", "%.3f", position);
-            telemetry.addData("Servo angle (deg)", "%.1f", position * SERVO_RANGE_DEG);
-            telemetry.addData("Target RPM", "%.0f", OUTTAKE_RPM);
-            telemetry.addData("Current RPM", "%.0f", outtake.getVelocity() / TICKS_PER_REV * 60.0);
-            telemetry.update();
+    }
+
+    private void gate() {
+        if (gamepad1.square) {
+            gate1.setPosition(GATE_OPEN_POS);
+        } else {
+            gate1.setPosition(GATE_CLOSED_POS);
+        }
+
+        if (gamepad1.circle) {
+            gate2.setPosition(GATE_OPEN_POS);
+        } else {
+            gate2.setPosition(GATE_CLOSED_POS);
         }
     }
 }
